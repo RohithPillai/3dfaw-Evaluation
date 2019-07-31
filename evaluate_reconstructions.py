@@ -334,9 +334,10 @@ def eval_mesh(test_mesh, res_dir, ref_dir, reffile_prefix='mesh', resfile_prefix
         landmark_t = mesh_t.vertices[mesh_t.landmarks_3D]
         selInds = np.union1d(np.where(mesh_s.landmarks_3D ==-1)[0], np.where(mesh_t.landmarks_3D ==-1)[0])
 
+        _,_,rough_scale_s = align_source_to_target(landmark_s,landmark_t,scale = True)
         #### ONLY for the reconstructed/pred mesh we
         # crop to 95 mm around the nose tip (landmark 13th/51)
-        dist_s = 95
+        dist_s = 95/rough_scale_s
         sdist_mm = np.sqrt(np.sum(np.square(reconstruct_shape - landmark_s[13]),axis=1)) 
         indxSel = np.where(sdist_mm <= dist_s)[0]
         reconstruct_shape_crop = reconstruct_shape[indxSel] 
@@ -413,7 +414,7 @@ submit_dir = args["pred_dir"]
 ref_dir = args["gt_dir"]
 test_file = args["test_file"]
 
-print("3DFAW-Video evaluation program version 12.7")
+print("3DFAW-Video evaluation program version 12.8")
 print('Pred. Dir:',submit_dir)
 print('Ground Truth Dir:', ref_dir)
 
