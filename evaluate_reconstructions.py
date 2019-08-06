@@ -358,8 +358,8 @@ def eval_mesh(test_mesh, res_dir, ref_dir, reffile_prefix='mesh', resfile_prefix
 
         errorS2T,errorT2S,RR,tt,ss = reconstruct_distance(reconstruct_shape_crop,gt_shape,f_s,f_t,landmark_s,landmark_t)
 
-        absolute_rmseS2T = np.sqrt(np.mean(errorS2T**2))/ss
-        absolute_rmseT2S= np.sqrt(np.mean(errorT2S**2))/ss
+        absolute_rmseS2T = np.sqrt(np.mean(errorS2T**2))
+        absolute_rmseT2S= np.sqrt(np.mean(errorT2S**2))
 
 	# take the average of the assymetrical point to mesh dists.
         absolute_armse = (absolute_rmseS2T + absolute_rmseT2S)/2
