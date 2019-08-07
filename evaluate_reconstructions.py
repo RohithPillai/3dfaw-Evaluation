@@ -334,10 +334,17 @@ def eval_mesh(test_mesh, res_dir, ref_dir, reffile_prefix='mesh', resfile_prefix
         landmark_t = mesh_t.vertices[mesh_t.landmarks_3D]
         selInds = np.union1d(np.where(mesh_s.landmarks_3D ==-1)[0], np.where(mesh_t.landmarks_3D ==-1)[0])
 
-        _,_,rough_scale_s = align_source_to_target(landmark_s,landmark_t,scale = True)
+        # ignore landmarks that were -1 in the target
+        landmark_s_4crop  = np.delete(landmark_s, selInds, axis=0)
+        landmark_t_4crop  = np.delete(landmark_t, selInds, axis=0)
+        # Get rough aligned pred mesh with the GT
+        nbrsT_4crop = NearestNeighbors(n_neighbors = 1, algorithm = 'kd_tree').fit(gt_shape)
+        reconstruct_shape,r ,t ,s = icp(reconstruct_shape,gt_shape,landmark_s_4crop,landmark_t_4crop,nbrsT_4crop,max_iter = 1)
+        landmark_s = s*np.matmul(landmark_s,r) + t
+
         #### ONLY for the reconstructed/pred mesh we
         # crop to 95 mm around the nose tip (landmark 13th/51)
-        dist_s = 95/rough_scale_s
+        dist_s = 95
         sdist_mm = np.sqrt(np.sum(np.square(reconstruct_shape - landmark_s[13]),axis=1)) 
         indxSel = np.where(sdist_mm <= dist_s)[0]
         reconstruct_shape_crop = reconstruct_shape[indxSel] 
@@ -352,14 +359,18 @@ def eval_mesh(test_mesh, res_dir, ref_dir, reffile_prefix='mesh', resfile_prefix
         f_s = np.array(reconFaceCrop) 
         f_t = mesh_t.faces
 
+        # get outer-interoccular distance, oic_dist to normalize 
+        # before changing the landmark references
+        oic_dist  = np.sqrt(np.sum(np.square(landmark_t[19] - landmark_t[28])))
+
         # ignore landmarks that were -1 in the target
         landmark_s  = np.delete(landmark_s, selInds, axis=0)
         landmark_t  = np.delete(landmark_t, selInds, axis=0)
 
         errorS2T,errorT2S,RR,tt,ss = reconstruct_distance(reconstruct_shape_crop,gt_shape,f_s,f_t,landmark_s,landmark_t)
 
-        absolute_rmseS2T = np.sqrt(np.mean(errorS2T**2))
-        absolute_rmseT2S= np.sqrt(np.mean(errorT2S**2))
+        absolute_rmseS2T = 100*np.sqrt(np.mean(errorS2T**2))/oic_dist
+        absolute_rmseT2S= 100*np.sqrt(np.mean(errorT2S**2))/oic_dist
 
 	# take the average of the assymetrical point to mesh dists.
         absolute_armse = (absolute_rmseS2T + absolute_rmseT2S)/2
@@ -414,7 +425,7 @@ submit_dir = args["pred_dir"]
 ref_dir = args["gt_dir"]
 test_file = args["test_file"]
 
-print("3DFAW-Video evaluation program version 12.8")
+print("3DFAW-Video evaluation program version 12.9")
 print('Pred. Dir:',submit_dir)
 print('Ground Truth Dir:', ref_dir)
 
